@@ -1,4 +1,3 @@
-// Package books provides functions for managing books in a SQLite database.
 package books
 
 import (
@@ -18,9 +17,7 @@ type Book struct {
 	URL          string
 }
 
-// NewDB initializes a new DB connection and creates the books table if it doesn't exist.
 func NewDB(dataSourceName string) (*sql.DB, error) {
-	// Create the directory if it doesn't exist.
 	dir := filepath.Dir(dataSourceName)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, 0755)
@@ -45,7 +42,6 @@ func NewDB(dataSourceName string) (*sql.DB, error) {
 	return db, nil
 }
 
-// InsertBook inserts a new book into the database.
 func InsertBook(db *sql.DB, book Book) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -67,7 +63,6 @@ func InsertBook(db *sql.DB, book Book) error {
 	return nil
 }
 
-// UpdateBook updates an existing book in the database.
 func UpdateBook(db *sql.DB, id int, book Book) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -89,7 +84,6 @@ func UpdateBook(db *sql.DB, id int, book Book) error {
 	return nil
 }
 
-// DeleteBook deletes a book from the database.
 func DeleteBook(db *sql.DB, id int) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -111,8 +105,6 @@ func DeleteBook(db *sql.DB, id int) error {
 	return nil
 }
 
-// GetAllBooks retrieves all books from the database.
-// GetAllBooks retrieves all books from the database.
 func GetAllBooks(db *sql.DB, page int, pageSize int) ([]Book, error) {
 	offset := (page - 1) * pageSize
 	rows, err := db.Query("SELECT id, bookName, cleanedTitle, url FROM books LIMIT ? OFFSET ?", pageSize, offset)
@@ -136,7 +128,6 @@ func GetAllBooks(db *sql.DB, page int, pageSize int) ([]Book, error) {
 	return books, nil
 }
 
-// GetFilteredTitles retrieves all books from the database that match the filter.
 func GetFilteredTitles(db *sql.DB, page int, pageSize int, filter string) ([]Book, error) {
 	offset := (page - 1) * pageSize
 	filter = strings.ToLower(filter)
@@ -161,7 +152,6 @@ func GetFilteredTitles(db *sql.DB, page int, pageSize int, filter string) ([]Boo
 	return books, nil
 }
 
-// GetBooksByBookName retrieves all books from the database that match the BookName filter.
 func GetBooksByBookName(db *sql.DB, page int, pageSize int, filter string) ([]Book, error) {
 	offset := (page - 1) * pageSize
 	filter = strings.ToLower(filter)
@@ -186,7 +176,6 @@ func GetBooksByBookName(db *sql.DB, page int, pageSize int, filter string) ([]Bo
 	return books, nil
 }
 
-// GetUniqueBookNames retrieves all unique book names from the database.
 func GetUniqueBookNames(db *sql.DB) ([]string, error) {
 	rows, err := db.Query("SELECT DISTINCT bookName FROM books")
 	if err != nil {
