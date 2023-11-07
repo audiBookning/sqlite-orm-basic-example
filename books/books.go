@@ -4,6 +4,9 @@ package books
 import (
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -17,6 +20,15 @@ type Book struct {
 
 // NewDB initializes a new DB connection and creates the books table if it doesn't exist.
 func NewDB(dataSourceName string) (*sql.DB, error) {
+	// Create the directory if it doesn't exist.
+	dir := filepath.Dir(dataSourceName)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err = os.MkdirAll(dir, 0755)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create directory: %v", err)
+		}
+	}
+
 	db, err := sql.Open("sqlite3", dataSourceName)
 	if err != nil {
 		return nil, err
@@ -100,8 +112,10 @@ func DeleteBook(db *sql.DB, id int) error {
 }
 
 // GetAllBooks retrieves all books from the database.
-func GetAllBooks(db *sql.DB) ([]Book, error) {
-	rows, err := db.Query("select id, bookName, cleanedTitle, url from books")
+// GetAllBooks retrieves all books from the database.
+func GetAllBooks(db *sql.DB, page int, pageSize int) ([]Book, error) {
+	offset := (page - 1) * pageSize
+	rows, err := db.Query("SELECT id, bookName, cleanedTitle, url FROM books LIMIT ? OFFSET ?", pageSize, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query data: %v", err)
 	}
@@ -120,4 +134,77 @@ func GetAllBooks(db *sql.DB) ([]Book, error) {
 		return nil, fmt.Errorf("failed during iteration: %v", err)
 	}
 	return books, nil
+}
+
+// GetFilteredTitles retrieves all books from the database that match the filter.
+func GetFilteredTitles(db *sql.DB, page int, pageSize int, filter string) ([]Book, error) {
+	offset := (page - 1) * pageSize
+	filter = strings.ToLower(filter)
+	rows, err := db.Query("SELECT id, bookName, cleanedTitle, url FROM books WHERE LOWER(cleanedTitle) LIKE ? LIMIT ? OFFSET ?", "%"+filter+"%", pageSize, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query data: %v", err)
+	}
+	defer rows.Close()
+
+	var books []Book
+	for rows.Next() {
+		var book Book
+		err := rows.Scan(&book.ID, &book.BookName, &book.CleanedTitle, &book.URL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %v", err)
+		}
+		books = append(books, book)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed during iteration: %v", err)
+	}
+	return books, nil
+}
+
+// GetBooksByBookName retrieves all books from the database that match the BookName filter.
+func GetBooksByBookName(db *sql.DB, page int, pageSize int, filter string) ([]Book, error) {
+	offset := (page - 1) * pageSize
+	filter = strings.ToLower(filter)
+	rows, err := db.Query("SELECT id, bookName, cleanedTitle, url FROM books WHERE LOWER(bookName) LIKE ? LIMIT ? OFFSET ?", "%"+filter+"%", pageSize, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query data: %v", err)
+	}
+	defer rows.Close()
+
+	var books []Book
+	for rows.Next() {
+		var book Book
+		err := rows.Scan(&book.ID, &book.BookName, &book.CleanedTitle, &book.URL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %v", err)
+		}
+		books = append(books, book)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed during iteration: %v", err)
+	}
+	return books, nil
+}
+
+// GetUniqueBookNames retrieves all unique book names from the database.
+func GetUniqueBookNames(db *sql.DB) ([]string, error) {
+	rows, err := db.Query("SELECT DISTINCT bookName FROM books")
+	if err != nil {
+		return nil, fmt.Errorf("failed to query data: %v", err)
+	}
+	defer rows.Close()
+
+	var bookNames []string
+	for rows.Next() {
+		var bookName string
+		err := rows.Scan(&bookName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %v", err)
+		}
+		bookNames = append(bookNames, bookName)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed during iteration: %v", err)
+	}
+	return bookNames, nil
 }
